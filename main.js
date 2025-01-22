@@ -10,6 +10,8 @@ const createWindow = () => {
     width: 400,
     height: 40,
     show: false,
+    resizable: false,
+    frame: false,
     titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -23,7 +25,7 @@ const createObjectivesWindow = () => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   objectivesWindow = new BrowserWindow({
     width: 300,
-    height: 200,
+    height: 300,
     x: width - 310, 
     y: height - 210,
     frame: false,
