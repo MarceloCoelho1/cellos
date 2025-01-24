@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   window.api.updateObjectives((event, objectives) => {
     objectivesList.innerHTML = ''; 
-
+ 
     objectives.forEach((obj, index) => {
       const li = document.createElement('li');
 

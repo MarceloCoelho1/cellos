@@ -57,7 +57,7 @@ app.whenReady().then(() => {
     }
   });
 
-  globalShortcut.register('Control+Shift+A', () => {
+  globalShortcut.register('Control+Shift+O', () => {
     if (objectivesWindow) {
       objectivesWindow.close();
       objectivesWindow = null;
@@ -75,8 +75,19 @@ app.whenReady().then(() => {
 })
 
 ipcMain.on('submitForm', (event, objective) => {
-  objectives.push({ objective, completed: false });
-  console.log('Objetivos atuais:', objectives.map((obj) => obj.objective));
+  let dateObj =  new Date()
+  // console.log(`Date: ${dateObj.toDateString()}`);
+  // console.log(`Time: ${dateObj.toTimeString()}`);
+  objectives.push(
+    { 
+      objective, 
+      completed: false, 
+      initialTime: dateObj.toTimeString(),
+      endTime: null
+    }
+  );
+  console.log('Objetivos atuais:', objectives);
+  dateObj = null
   if (objectivesWindow) {
     objectivesWindow.webContents.send('updateObjectives', objectives);
   }
@@ -93,7 +104,10 @@ ipcMain.on('removeObjective', (event, index) => {
 
 ipcMain.on('toggleObjective', (event, index) => {
   if (objectives[index]) {
+    let dateObj = new Date()
+    
     objectives[index].completed = !objectives[index].completed;
+    objectives[index].endTime = dateObj.toTimeString()
     console.log(`Objetivo atualizado:`, objectives[index]); 
 
     if (objectivesWindow) {
