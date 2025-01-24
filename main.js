@@ -4,6 +4,9 @@ const path = require('node:path')
 let win;
 let objectivesWindow;
 let objectives = [];
+let sessionStartTime = null; 
+let sessionEndTime = null;  
+
 
 const createWindow = () => {
   win = new BrowserWindow({
@@ -75,40 +78,65 @@ app.whenReady().then(() => {
 })
 
 ipcMain.on('submitForm', (event, objective) => {
-  let dateObj =  new Date()
-  // console.log(`Date: ${dateObj.toDateString()}`);
-  // console.log(`Time: ${dateObj.toTimeString()}`);
-  objectives.push(
-    { 
-      objective, 
-      completed: false, 
-      initialTime: dateObj.toTimeString(),
-      endTime: null
-    }
-  );
+  const dateObj = new Date();
+
+  if (objectives.length === 0) {
+    sessionStartTime = dateObj;
+    console.log(`Sessão de estudo iniciada em: ${sessionStartTime.toTimeString()}`);
+  }
+
+  objectives.push({
+    objective,
+    completed: false,
+    initialTime: dateObj.toTimeString(),
+    endTime: null,
+  });
+
   console.log('Objetivos atuais:', objectives);
-  dateObj = null
+
   if (objectivesWindow) {
     objectivesWindow.webContents.send('updateObjectives', objectives);
   }
 });
 
+
 ipcMain.on('removeObjective', (event, index) => {
-  objectives.splice(index, 1)
-  console.log('Objetivo removido!')
+  objectives.splice(index, 1);
+  console.log('Objetivo removido!');
+
+  if (objectives.length === 0) {
+    sessionStartTime = null;
+    sessionEndTime = null;
+    console.log('Sessão de estudo reiniciada (nenhum objetivo restante).');
+  }
 
   BrowserWindow.getAllWindows().forEach((win) => {
     win.webContents.send('updateObjectives', objectives);
   });
-})
+});
+
 
 ipcMain.on('toggleObjective', (event, index) => {
   if (objectives[index]) {
-    let dateObj = new Date()
-    
+    const dateObj = new Date();
+
     objectives[index].completed = !objectives[index].completed;
-    objectives[index].endTime = dateObj.toTimeString()
-    console.log(`Objetivo atualizado:`, objectives[index]); 
+    objectives[index].endTime = dateObj.toTimeString();
+    console.log(`Objetivo atualizado:`, objectives[index]);
+
+    const allCompleted = objectives.every(obj => obj.completed);
+
+    if (allCompleted) {
+      sessionEndTime = dateObj;
+      const totalTime = (sessionEndTime - sessionStartTime) / 1000; 
+
+      const hours = Math.floor(totalTime / 3600);
+      const minutes = Math.floor((totalTime % 3600) / 60);
+      const seconds = Math.floor(totalTime % 60);
+
+      console.log(`Sessão de estudo concluída!`);
+      console.log(`Duração total da sessão: ${hours} horas, ${minutes} minutos e ${seconds} segundos.`);
+    }
 
     if (objectivesWindow) {
       objectivesWindow.webContents.send('updateObjectives', objectives);
