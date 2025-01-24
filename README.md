@@ -1,3 +1,3 @@
 # cellos
 
-A minimalist study app with metrics
+A minimalist study desktop app with metrics
