@@ -24,11 +24,13 @@ body {
   padding-bottom: 2px;
 }
 
+.objective span {
+  font-weight: 500;
+}
+
 .objective div {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 500;
 }
 
 .checkbox {
@@ -37,7 +39,6 @@ body {
 }
 
 .remove-btn {
-  margin-left: 8px;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -45,6 +46,26 @@ body {
   border: none;
   cursor: pointer;
   color: rgb(239 68 68);
+}
+
+.cancel-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgb(255, 210, 48);
+}
+
+.complete-btn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgb(123, 241, 168);
 }
 
 li {
@@ -56,10 +77,4 @@ li {
 
 li:last-child {
   border-bottom: none;
-}
-
-
-li.completed {
-  text-decoration: line-through;
-  color: #888;
 }
