@@ -1,11 +1,19 @@
 const { app, BrowserWindow, ipcMain, globalShortcut, screen } = require('electron/main')
 const path = require('node:path')
+const fs = require('node:fs')
 
 let win;
 let objectivesWindow;
 let objectives = [];
 let sessionStartTime = null; 
 let sessionEndTime = null;  
+let currentSession = {
+  sessionId: null,
+  startTime: null,
+  objectives: [],
+};
+let sessions = [];
+const jsonFilePath = path.join(app.getPath('userData'), 'sessions.json');
 
 
 const createWindow = () => {
@@ -42,11 +50,12 @@ const createObjectivesWindow = () => {
   objectivesWindow.loadFile('./src/pages/objectives.html'); 
 
   objectivesWindow.once('ready-to-show', () => {
-    objectivesWindow.webContents.send('updateObjectives', objectives);
+    objectivesWindow.webContents.send('updateObjectives', currentSession.objectives);
   });
 };
 
 app.whenReady().then(() => {
+  loadSessionsFromFile();
   createWindow()
 
   globalShortcut.register('Control+Shift+S', () => {
@@ -77,20 +86,27 @@ app.whenReady().then(() => {
   })
 })
 
+const saveSessionsToFile = () => {
+  fs.writeFileSync(jsonFilePath, JSON.stringify(sessions, null, 2), 'utf-8');
+};
+
 ipcMain.on('submitForm', (event, objective) => {
   const dateObj = new Date();
-
+  const newObjective = {
+    objective,
+    completed: false,
+    initialTime: dateObj.toISOString(),
+    endTime: null,
+  };
   if (objectives.length === 0) {
     sessionStartTime = dateObj;
+    currentSession.sessionId = Date.now();
+    currentSession.startTime = sessionStartTime.toISOString();
     console.log(`Sessão de estudo iniciada em: ${sessionStartTime.toTimeString()}`);
   }
 
-  objectives.push({
-    objective,
-    completed: false,
-    initialTime: dateObj.toTimeString(),
-    endTime: null,
-  });
+  objectives.push(newObjective);
+  currentSession.objectives.push(newObjective);
 
   console.log('Objetivos atuais:', objectives);
 
@@ -102,12 +118,23 @@ ipcMain.on('submitForm', (event, objective) => {
 
 ipcMain.on('removeObjective', (event, index) => {
   objectives.splice(index, 1);
+  currentSession.objectives.splice(index, 1);
   console.log('Objetivo removido!');
 
   if (objectives.length === 0) {
-    sessionStartTime = null;
-    sessionEndTime = null;
-    console.log('Sessão de estudo reiniciada (nenhum objetivo restante).');
+    if (!currentSession.objectives.some(obj => obj.completed)) {
+      sessionStartTime = null;
+      currentSession = {
+        sessionId: null,
+        startTime: null,
+        objectives: [],
+      };
+      console.log('Sessão descartada. Nenhum objetivo foi concluído.');
+    }
+
+    if (objectivesWindow) {
+      objectivesWindow.webContents.send('updateObjectives', objectives);
+    }
   }
 
   BrowserWindow.getAllWindows().forEach((win) => {
@@ -121,7 +148,7 @@ ipcMain.on('toggleObjective', (event, index) => {
     const dateObj = new Date();
 
     objectives[index].completed = !objectives[index].completed;
-    objectives[index].endTime = dateObj.toTimeString();
+    objectives[index].endTime = objectives[index].completed ? dateObj.toISOString() : null;
     console.log(`Objetivo atualizado:`, objectives[index]);
 
     const allCompleted = objectives.every(obj => obj.completed);
@@ -136,6 +163,25 @@ ipcMain.on('toggleObjective', (event, index) => {
 
       console.log(`Sessão de estudo concluída!`);
       console.log(`Duração total da sessão: ${hours} horas, ${minutes} minutos e ${seconds} segundos.`);
+
+      currentSession.endTime = sessionEndTime.toISOString();
+      currentSession.totalTime = {
+        hours,
+        minutes,
+        seconds,
+      };
+
+      sessions.push(currentSession);
+      saveSessionsToFile();
+
+      sessionStartTime = null;
+      sessionEndTime = null;
+      objectives = [];
+      currentSession = {
+        sessionId: null,
+        startTime: null,
+        objectives: [],
+      };
     }
 
     if (objectivesWindow) {
